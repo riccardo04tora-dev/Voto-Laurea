@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Laurea">
+<meta name="theme-color" content="#0b0f1a">
+<link rel="manifest" href="manifest.json">
+<title>Voto di Laurea</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --gold: #e9a825;
+    --gold2: #f5c842;
+    --green: #10b981;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --dim: #334155;
+    --border: rgba(255,255,255,0.08);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow: hidden; }
+
+  /* Layout */
+  #app { display: flex; flex-direction: column; height: 100%; padding-top: var(--safe-top); }
+  #header { padding: 16px 20px 12px; background: var(--bg); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  #header h1 { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); letter-spacing: 0.5px; }
+  #header p { font-size: 10px; color: var(--muted); margin-top: 1px; letter-spacing: 1px; text-transform: uppercase; }
+
+  #content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #nav { display: flex; background: var(--bg); border-top: 1px solid var(--border); flex-shrink: 0; padding-bottom: var(--safe-bottom); }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 0; cursor: pointer; border: none; background: transparent; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; transition: color 0.2s; }
+  .nav-btn.active { color: var(--gold); }
+  .nav-btn svg { width: 20px; height: 20px; }
+
+  /* Pages */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .card-title { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 8px; text-align: center; }
+  .stat-val { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); font-weight: 700; }
+  .stat-lbl { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-top: 2px; text-transform: uppercase; }
+
+  /* Result display */
+  #result-box { background: linear-gradient(135deg, rgba(233,168,37,0.1), rgba(255,255,255,0.02)); border: 2px solid rgba(233,168,37,0.3); border-radius: 18px; padding: 24px 20px; text-align: center; margin-bottom: 14px; }
+  #result-grade { font-family: 'Playfair Display', serif; font-size: 72px; font-weight: 900; color: var(--gold); line-height: 1; transition: color 0.3s; }
+  #result-grade.green { color: var(--green); }
+  #result-grade.lode { color: var(--gold2); }
+  #result-sub { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  #result-badge { display: inline-block; margin-top: 10px; padding: 4px 16px; border-radius: 20px; font-size: 11px; background: rgba(233,168,37,0.12); color: var(--gold); border: 1px solid rgba(233,168,37,0.25); }
+
+  /* Distance indicators */
+  .dist-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .dist-box { background: rgba(0,0,0,0.25); border-radius: 10px; padding: 10px 12px; text-align: center; }
+  .dist-lbl { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .dist-val { font-size: 15px; font-weight: 700; margin-top: 3px; }
+
+  /* Missing exams */
+  .exam-missing { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .exam-missing-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .exam-missing-name { font-size: 13px; color: var(--text); }
+  .exam-missing-cfu { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .grade-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .grade-btn { width: 38px; height: 30px; border-radius: 7px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--muted); font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
+  .grade-btn.sel { border: 2px solid var(--gold); background: rgba(233,168,37,0.18); color: var(--gold); font-weight: 700; }
+
+  /* Preset chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .chip { padding: 5px 13px; border-radius: 20px; border: 1px solid rgba(233,168,37,0.25); background: rgba(233,168,37,0.05); color: var(--gold); font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace; white-space: nowrap; }
+  .chip:active { background: rgba(233,168,37,0.15); }
+
+  /* Exam list (my exams page) */
+  .exam-item { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; position: relative; }
+  .exam-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .exam-info { flex: 1; min-width: 0; }
+  .exam-name { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .exam-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .exam-grade { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+  .exam-del { background: transparent; border: none; color: var(--dim); font-size: 18px; cursor: pointer; padding: 4px 6px; line-height: 1; }
+
+  /* Settings / add exam */
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; outline: none; -webkit-appearance: none; }
+  .form-input:focus { border-color: rgba(233,168,37,0.4); }
+  .grade-select { display: flex; flex-wrap: wrap; gap: 5px; }
+  .grade-sel-btn { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: rgba(255,255,255,0.03); color: var(--muted); font-size: 12px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; min-width: 42px; text-align: center; }
+  .grade-sel-btn.sel { border: 2px solid var(--gold); background: rgba(233,168,37,0.15); color: var(--gold); font-weight: 700; }
+  .btn-primary { width: 100%; padding: 14px; background: var(--gold); color: #0b0f1a; border: none; border-radius: 12px; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 1px; margin-top: 6px; }
+  .btn-primary:active { opacity: 0.85; }
+
+  /* Table */
+  .table-wrap { border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 10px 8px; background: rgba(233,168,37,0.1); color: var(--gold); font-size: 9px; font-weight: normal; letter-spacing: 1px; text-transform: uppercase; text-align: center; }
+  td { padding: 9px 8px; text-align: center; border-top: 1px solid rgba(255,255,255,0.04); color: var(--muted); }
+  tr.highlight-lode { background: rgba(233,168,37,0.07); }
+  tr.highlight-110 { background: rgba(16,185,129,0.06); }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 10px; }
+
+  /* Reg notice */
+  .reg-note { background: rgba(233,168,37,0.06); border: 1px solid rgba(233,168,37,0.2); border-radius: 10px; padding: 12px 14px; font-size: 11px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+  .reg-note strong { color: var(--gold); }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 40px 20px; color: var(--dim); font-size: 13px; }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* Scrollbar */
+  #content::-webkit-scrollbar { width: 3px; }
+  #content::-webkit-scrollbar-track { background: transparent; }
+  #content::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+
+  /* Animations */
+  @keyframes fadeUp { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+  .page.active { animation: fadeUp 0.25s ease; }
+
+  /* Install banner */
+  #install-banner { display: none; background: rgba(233,168,37,0.12); border-bottom: 1px solid rgba(233,168,37,0.25); padding: 10px 20px; text-align: center; font-size: 11px; color: var(--gold); cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="install-banner" onclick="installApp()">📲 Aggiungi alla schermata home per usarla come app</div>
+  <div id="header">
+    <h1>Voto di Laurea</h1>
+    <p id="header-sub">Simulatore · Sapienza Ingegneria</p>
+  </div>
+  <div id="content">
+
+    <!-- PAGE: SIMULATORE -->
+    <div class="page active" id="page-sim">
+      <div class="stats-row" id="stats-row"></div>
+      <div id="result-box">
+        <div id="result-grade">—</div>
+        <div id="result-sub">MP finale: <span id="mp-val">—</span> · Grezzo: <span id="raw-val">—</span></div>
+        <div id="result-badge">Calcola i tuoi voti</div>
+        <div class="dist-row">
+          <div class="dist-box">
+            <div class="dist-lbl">al 110</div>
+            <div class="dist-val" id="dist-110">—</div>
+          </div>
+          <div class="dist-box">
+            <div class="dist-lbl">alla Lode</div>
+            <div class="dist-val" id="dist-lode">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chips" id="preset-chips"></div>
+
+      <div id="missing-exams-container"></div>
+    </div>
+
+    <!-- PAGE: I MIEI ESAMI -->
+    <div class="page" id="page-exams">
+      <div class="card">
+        <div class="card-title">Aggiungi esame sostenuto</div>
+        <div class="form-group">
+          <label class="form-label">Nome esame</label>
+          <input class="form-input" id="inp-name" type="text" placeholder="es. Analisi Matematica I" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CFU</label>
+          <input class="form-input" id="inp-cfu" type="number" placeholder="es. 9" min="1" max="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Voto</label>
+          <div class="grade-select" id="add-grade-select"></div>
+        </div>
+        <button class="btn-primary" onclick="addExam()">+ Aggiungi esame</button>
+      </div>
+
+      <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Esami inseriti</div>
+      <div id="exam-list"></div>
+    </div>
+
+    <!-- PAGE: ESAMI FUTURI -->
+    <div class="page" id="page-future">
+      <div class="card">
+        <div class="card-title">Aggiungi esame futuro</div>
+        <div class="form-group">
+          <label class="form-label">Nome esame</label>
+          <input class="form-input" id="fut-name" type="text" placeholder="es. Fisica Tecnica" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CFU</label>
+          <input class="form-input" id="fut-cfu" type="number" placeholder="es. 6" min="1" max="30">
+        </div>
+        <button class="btn-primary" onclick="addFutureExam()">+ Aggiungi</button>
+      </div>
+      <div style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Esami da dare</div>
+      <div id="future-exam-list"></div>
+    </div>
+
+    <!-- PAGE: TABELLA -->
+    <div class="page" id="page-table">
+      <div class="reg-note">
+        <strong>Regolamento Sapienza Ingegneria Civile</strong><br>
+        Voto = MP × 4 · 30L conta come 31 · <strong>Lode se voto grezzo ≥ 115</strong>
+      </div>
+      <div class="table-wrap">
+        <table id="scenario-table">
+          <thead>
+            <tr>
+              <th>Media futuri</th>
+              <th>MP finale</th>
+              <th>Grezzo</th>
+              <th>Risultato</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAGE: IMPOSTAZIONI -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-title">Regolamento</div>
+        <div class="form-group">
+          <label class="form-label">Formula voto</label>
+          <select class="form-input" id="set-formula">
+            <option value="4">MP × 4 (Sapienza Ing. Civile)</option>
+            <option value="3">MP × 3</option>
+            <option value="3.667">MP × 3.667</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Soglia Lode (voto grezzo)</label>
+          <input class="form-input" id="set-lode" type="number" value="115" min="110" max="120" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valore 30 e Lode</label>
+          <input class="form-input" id="set-lodeVal" type="number" value="31" min="30" max="33" step="0.5">
+        </div>
+        <button class="btn-primary" onclick="saveSettings()">Salva impostazioni</button>
+      </div>
+      <div class="card" style="margin-top:0">
+        <div class="card-title">Dati</div>
+        <button class="btn-primary" style="background:rgba(248,113,113,0.15);color:var(--red);margin-bottom:8px;" onclick="resetAll()">Azzera tutti i dati</button>
+      </div>
+      <div class="card" style="margin-top:0">
+        <div class="card-title">Installazione</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.7;">
+          <strong style="color:var(--text)">iOS (Safari):</strong> tocca ↑ Condividi → "Aggiungi a schermata Home"<br><br>
+          <strong style="color:var(--text)">Android (Chrome):</strong> tocca ⋮ menu → "Aggiungi a schermata Home"
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <nav id="nav">
+    <button class="nav-btn active" onclick="showPage('sim',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Sim
+    </button>
+    <button class="nav-btn" onclick="showPage('exams',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Esami
+    </button>
+    <button class="nav-btn" onclick="showPage('future',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+      Futuri
+    </button>
+    <button class="nav-btn" onclick="showPage('table',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+      Scenari
+    </button>
+    <button class="nav-btn" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Config
+    </button>
+  </nav>
+</div>
+
+<script>
+// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const DEFAULT_EXAMS = [
+  {id:1, name:"Analisi Matematica I",    cfu:9,  grade:31},
+  {id:2, name:"Disegno",                 cfu:6,  grade:28},
+  {id:3, name:"Geometria",               cfu:9,  grade:26},
+  {id:4, name:"Chimica",                 cfu:6,  grade:31},
+  {id:5, name:"Fisica I",                cfu:9,  grade:31},
+  {id:6, name:"Analisi Matematica II",   cfu:9,  grade:30},
+  {id:7, name:"Probabilità e Statistica",cfu:6,  grade:31},
+  {id:8, name:"Fisica Matematica",       cfu:9,  grade:31},
+  {id:9, name:"Scienza delle Costruzioni I", cfu:6, grade:28},
+  {id:10,name:"Fisica II e Appl. Ing. El.", cfu:9, grade:28},
+  {id:11,name:"Topografia",              cfu:6,  grade:30},
+  {id:12,name:"Idraulica",               cfu:12, grade:31},
+  {id:13,name:"Scienza delle Costruzioni II", cfu:9, grade:22},
+  {id:14,name:"Tecnica ed Econ. Trasporti",   cfu:6, grade:28},
+  {id:15,name:"Tecnologia dei Materiali",cfu:6,  grade:31},
+  {id:16,name:"Meccanica delle Terre",   cfu:9,  grade:26},
+  {id:17,name:"Architettura Tecnica",    cfu:6,  grade:27},
+];
+
+const DEFAULT_FUTURE = [
+  {id:101, name:"Fisica Tecnica",           cfu:6},
+  {id:102, name:"Tecnica delle Costruzioni",cfu:12},
+  {id:103, name:"Idrologia",                cfu:9},
+  {id:104, name:"Infrastrutture Viarie",    cfu:9},
+];
+
+const DEFAULT_SETTINGS = { formula: 4, lodeSoglia: 115, lodeVal: 31 };
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  exams: [],
+  future: [],
+  futureGrades: {},
+  settings: {...DEFAULT_SETTINGS},
+  nextId: 200,
+};
+
+function load() {
+  try {
+    const s = localStorage.getItem('laurea-state');
+    if (s) {
+      const parsed = JSON.parse(s);
+      state = {...state, ...parsed};
+    } else {
+      state.exams = DEFAULT_EXAMS.map(e=>({...e}));
+      state.future = DEFAULT_FUTURE.map(e=>({...e}));
+      state.futureGrades = {101:28, 102:27, 103:28, 104:28};
+      save();
+    }
+  } catch(e) {
+    state.exams = DEFAULT_EXAMS.map(e=>({...e}));
+    state.future = DEFAULT_FUTURE.map(e=>({...e}));
+    state.futureGrades = {101:28, 102:27, 103:28, 104:28};
+  }
+}
+
+function save() {
+  try { localStorage.setItem('laurea-state', JSON.stringify(state)); } catch(e){}
+}
+
+// ─── CALC ─────────────────────────────────────────────────────────────────────
+function calcMP() {
+  const s = state.settings;
+  const pastSum = state.exams.reduce((a,e) => a + e.grade * e.cfu, 0);
+  const pastCFU = state.exams.reduce((a,e) => a + e.cfu, 0);
+  const futSum = state.future.reduce((a,e) => {
+    const g = state.futureGrades[e.id];
+    return g ? a + g * e.cfu : a;
+  }, 0);
+  const futCFU = state.future.reduce((a,e) => {
+    return state.futureGrades[e.id] ? a + e.cfu : a;
+  }, 0);
+  const totalCFU = pastCFU + state.future.reduce((a,e)=>a+e.cfu,0);
+  const filledCFU = pastCFU + futCFU;
+  if (filledCFU === 0) return null;
+  const mp = (pastSum + futSum) / (pastCFU + futCFU);
+  const raw = mp * s.formula;
+  return { mp, raw, pastCFU, pastSum, totalCFU };
+}
+
+function gradeColor(g) {
+  if (g === 31) return '#f59e0b';
+  if (g >= 28) return '#10b981';
+  if (g >= 24) return '#60a5fa';
+  if (g >= 20) return '#a78bfa';
+  return '#f87171';
+}
+
+function gradeLabel(g) { return g === 31 ? '30L' : String(g); }
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+const GRADES = [18,19,20,21,22,23,24,25,26,27,28,29,30,'30L'];
+const toNum = g => g === '30L' ? 31 : Number(g);
+
+function renderSim() {
+  const s = state.settings;
+  const pastCFU = state.exams.reduce((a,e)=>a+e.cfu,0);
+  const pastSum = state.exams.reduce((a,e)=>a+e.grade*e.cfu,0);
+  const pastMP = pastCFU ? (pastSum/pastCFU).toFixed(3) : '—';
+  const totalFutCFU = state.future.reduce((a,e)=>a+e.cfu,0);
+
+  // Stats
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat-box"><div class="stat-val">${pastMP}</div><div class="stat-lbl">Media att.</div></div>
+    <div class="stat-box"><div class="stat-val">${pastCFU}</div><div class="stat-lbl">CFU dati</div></div>
+    <div class="stat-box"><div class="stat-val">${totalFutCFU}</div><div class="stat-lbl">CFU futuri</div></div>
+  `;
+
+  // Result
+  const res = calcMP();
+  const gradeEl = document.getElementById('result-grade');
+  const badgeEl = document.getElementById('result-badge');
+  const dist110El = document.getElementById('dist-110');
+  const distLodeEl = document.getElementById('dist-lode');
+
+  if (res) {
+    const { mp, raw } = res;
+    let display, cls, badgeText, badgeCss;
+    if (raw >= s.lodeSoglia) {
+      display = '110 + Lode'; cls = 'lode';
+      badgeText = `Lode (grezzo ${raw.toFixed(1)} ≥ ${s.lodeSoglia})`;
+      badgeCss = 'background:rgba(245,158,11,0.15);color:#f59e0b;border-color:rgba(245,158,11,0.3)';
+    } else if (raw >= 110) {
+      display = '110'; cls = 'green';
+      badgeText = `110 raggiunto (grezzo ${raw.toFixed(1)})`;
+      badgeCss = 'background:rgba(16,185,129,0.12);color:#10b981;border-color:rgba(16,185,129,0.3)';
+    } else {
+      display = Math.round(raw).toString(); cls = '';
+      badgeText = `Voto stimato`;
+      badgeCss = 'background:rgba(107,114,128,0.1);color:#94a3b8;border-color:rgba(107,114,128,0.2)';
+    }
+    gradeEl.textContent = display;
+    gradeEl.className = cls;
+    document.getElementById('mp-val').textContent = mp.toFixed(3);
+    document.getElementById('raw-val').textContent = raw.toFixed(2);
+    badgeEl.textContent = badgeText;
+    badgeEl.style.cssText = badgeCss;
+
+    const d110 = 110 - raw;
+    const dLode = s.lodeSoglia - raw;
+    dist110El.textContent = d110 <= 0 ? '✓' : `-${d110.toFixed(1)}`;
+    dist110El.style.color = d110 <= 0 ? '#10b981' : '#f87171';
+    distLodeEl.textContent = dLode <= 0 ? '✓' : `-${dLode.toFixed(1)}`;
+    distLodeEl.style.color = dLode <= 0 ? '#f59e0b' : '#f87171';
+  } else {
+    gradeEl.textContent = '—';
+    gradeEl.className = '';
+    badgeEl.textContent = 'Inserisci i voti degli esami futuri';
+  }
+
+  // Header sub
+  document.getElementById('header-sub').textContent =
+    `${state.exams.length} esami · ${state.future.length} futuri · Sapienza Ing.`;
+
+  // Presets
+  const presets = [
+    {l:'Tutti 18', fn:()=>state.future.forEach(e=>{state.futureGrades[e.id]=18;})},
+    {l:'Tutti 24', fn:()=>state.future.forEach(e=>{state.futureGrades[e.id]=24;})},
+    {l:'Tutti 27', fn:()=>state.future.forEach(e=>{state.futureGrades[e.id]=27;})},
+    {l:'Tutti 28', fn:()=>state.future.forEach(e=>{state.futureGrades[e.id]=28;})},
+    {l:'Tutti 30', fn:()=>state.future.forEach(e=>{state.futureGrades[e.id]=30;})},
+    {l:'Tutti 30L',fn:()=>state.future.forEach(e=>{state.futureGrades[e.id]=31;})},
+  ];
+  document.getElementById('preset-chips').innerHTML = presets.map((p,i)=>
+    `<div class="chip" onclick="applyPreset(${i})">${p.l}</div>`
+  ).join('');
+  window._presets = presets;
+
+  // Missing exams
+  const container = document.getElementById('missing-exams-container');
+  if (state.future.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📚</div>Nessun esame futuro.<br>Aggiungili nella tab Futuri.</div>';
+    return;
+  }
+  container.innerHTML = state.future.map(e => {
+    const sel = state.futureGrades[e.id];
+    const btns = GRADES.map(g => {
+      const n = toNum(g);
+      const isSel = sel === n;
+      return `<button class="grade-btn${isSel?' sel':''}" onclick="setFutureGrade(${e.id},${n})">${g}</button>`;
+    }).join('');
+    return `
+      <div class="exam-missing">
+        <div class="exam-missing-header">
+          <div>
+            <div class="exam-missing-name">${e.name}</div>
+            <div class="exam-missing-cfu">${e.cfu} CFU</div>
+          </div>
+          ${sel ? `<div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:${gradeColor(sel)}">${gradeLabel(sel)}</div>` : ''}
+        </div>
+        <div class="grade-grid">${btns}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderExamList() {
+  const list = document.getElementById('exam-list');
+  if (state.exams.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📝</div>Nessun esame inserito.</div>';
+    return;
+  }
+  list.innerHTML = state.exams.map(e => `
+    <div class="exam-item">
+      <div class="exam-dot" style="background:${gradeColor(e.grade)}"></div>
+      <div class="exam-info">
+        <div class="exam-name">${e.name}</div>
+        <div class="exam-meta">${e.cfu} CFU</div>
+      </div>
+      <div class="exam-grade" style="color:${gradeColor(e.grade)}">${gradeLabel(e.grade)}</div>
+      <button class="exam-del" onclick="deleteExam(${e.id})">×</button>
+    </div>
+  `).join('');
+}
+
+function renderFutureList() {
+  const list = document.getElementById('future-exam-list');
+  if (state.future.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">🎯</div>Nessun esame futuro.</div>';
+    return;
+  }
+  list.innerHTML = state.future.map(e => `
+    <div class="exam-item">
+      <div class="exam-dot" style="background:var(--blue)"></div>
+      <div class="exam-info">
+        <div class="exam-name">${e.name}</div>
+        <div class="exam-meta">${e.cfu} CFU</div>
+      </div>
+      <button class="exam-del" onclick="deleteFuture(${e.id})">×</button>
+    </div>
+  `).join('');
+}
+
+function renderTable() {
+  const s = state.settings;
+  const pastCFU = state.exams.reduce((a,e)=>a+e.cfu,0);
+  const pastSum = state.exams.reduce((a,e)=>a+e.grade*e.cfu,0);
+  const futCFU = state.future.reduce((a,e)=>a+e.cfu,0);
+  const totalCFU = pastCFU + futCFU;
+
+  const rows = [18,20,22,23,24,25,26,27,28,29,30,31].map(mv => {
+    const futSum = mv * futCFU;
+    const mp = totalCFU ? (pastSum + futSum) / totalCFU : 0;
+    const raw = mp * s.formula;
+    let badge, color, rowCls = '';
+    if (raw >= s.lodeSoglia) { badge='110 + Lode'; color='#f59e0b'; rowCls='highlight-lode'; }
+    else if (raw >= 110)     { badge='110'; color='#10b981'; rowCls='highlight-110'; }
+    else                     { badge=`${Math.round(raw)}`; color='#94a3b8'; }
+    return `<tr class="${rowCls}">
+      <td style="color:${mv===31?'#f59e0b':'var(--text)'}">${mv===31?'30L':mv}</td>
+      <td>${mp.toFixed(3)}</td>
+      <td>${raw.toFixed(2)}</td>
+      <td><span class="badge" style="background:${color}18;color:${color};border:1px solid ${color}30">${badge}</span></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('table-body').innerHTML = rows;
+}
+
+function renderSettings() {
+  const s = state.settings;
+  document.getElementById('set-formula').value = s.formula;
+  document.getElementById('set-lode').value = s.lodeSoglia;
+  document.getElementById('set-lodeVal').value = s.lodeVal;
+}
+
+// Build add-exam grade picker
+function buildGradePicker(containerId, stateKey) {
+  const el = document.getElementById(containerId);
+  let selected = null;
+  el.innerHTML = GRADES.map(g => {
+    const n = toNum(g);
+    return `<button class="grade-sel-btn" data-val="${n}" onclick="selectGrade('${containerId}','${stateKey}',${n},this)">${g}</button>`;
+  }).join('');
+  window[stateKey] = null;
+}
+
+function selectGrade(containerId, stateKey, val, btn) {
+  document.querySelectorAll(`#${containerId} .grade-sel-btn`).forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  window[stateKey] = val;
+}
+
+// ─── ACTIONS ──────────────────────────────────────────────────────────────────
+function setFutureGrade(id, grade) {
+  state.futureGrades[id] = grade;
+  save();
+  renderSim();
+}
+
+function applyPreset(i) {
+  window._presets[i].fn();
+  save();
+  renderSim();
+}
+
+function addExam() {
+  const name = document.getElementById('inp-name').value.trim();
+  const cfu = parseInt(document.getElementById('inp-cfu').value);
+  const grade = window.addGradeSelected;
+  if (!name) { alert('Inserisci il nome dell\'esame'); return; }
+  if (!cfu || cfu < 1) { alert('Inserisci i CFU'); return; }
+  if (!grade) { alert('Seleziona un voto'); return; }
+  state.exams.push({ id: state.nextId++, name, cfu, grade });
+  save();
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-cfu').value = '';
+  buildGradePicker('add-grade-select', 'addGradeSelected');
+  renderExamList();
+  renderSim();
+}
+
+function deleteExam(id) {
+  state.exams = state.exams.filter(e=>e.id!==id);
+  save();
+  renderExamList();
+  renderSim();
+}
+
+function addFutureExam() {
+  const name = document.getElementById('fut-name').value.trim();
+  const cfu = parseInt(document.getElementById('fut-cfu').value);
+  if (!name) { alert('Inserisci il nome'); return; }
+  if (!cfu || cfu < 1) { alert('Inserisci i CFU'); return; }
+  const id = state.nextId++;
+  state.future.push({ id, name, cfu });
+  save();
+  document.getElementById('fut-name').value = '';
+  document.getElementById('fut-cfu').value = '';
+  renderFutureList();
+  renderSim();
+}
+
+function deleteFuture(id) {
+  state.future = state.future.filter(e=>e.id!==id);
+  delete state.futureGrades[id];
+  save();
+  renderFutureList();
+  renderSim();
+}
+
+function saveSettings() {
+  state.settings.formula = parseFloat(document.getElementById('set-formula').value);
+  state.settings.lodeSoglia = parseFloat(document.getElementById('set-lode').value);
+  state.settings.lodeVal = parseFloat(document.getElementById('set-lodeVal').value);
+  save();
+  renderSim();
+  renderTable();
+  alert('Impostazioni salvate');
+}
+
+function resetAll() {
+  if (!confirm('Sei sicuro? Tutti i dati verranno eliminati.')) return;
+  localStorage.removeItem('laurea-state');
+  location.reload();
+}
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='sim') renderSim();
+  if (name==='exams') renderExamList();
+  if (name==='future') renderFutureList();
+  if (name==='table') renderTable();
+  if (name==='settings') renderSettings();
+}
+
+// ─── PWA INSTALL ─────────────────────────────────────────────────────────────
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'block';
+});
+
+function installApp() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {
+      deferredPrompt = null;
+      document.getElementById('install-banner').style.display = 'none';
+    });
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+load();
+buildGradePicker('add-grade-select', 'addGradeSelected');
+renderSim();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
