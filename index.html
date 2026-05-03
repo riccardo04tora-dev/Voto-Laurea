@@ -293,6 +293,33 @@
 
 <script>
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const DEFAULT_EXAMS = [
+  {id:1, name:"Analisi Matematica I",    cfu:9,  grade:31},
+  {id:2, name:"Disegno",                 cfu:6,  grade:28},
+  {id:3, name:"Geometria",               cfu:9,  grade:26},
+  {id:4, name:"Chimica",                 cfu:6,  grade:31},
+  {id:5, name:"Fisica I",                cfu:9,  grade:31},
+  {id:6, name:"Analisi Matematica II",   cfu:9,  grade:30},
+  {id:7, name:"Probabilità e Statistica",cfu:6,  grade:31},
+  {id:8, name:"Fisica Matematica",       cfu:9,  grade:31},
+  {id:9, name:"Scienza delle Costruzioni I", cfu:6, grade:28},
+  {id:10,name:"Fisica II e Appl. Ing. El.", cfu:9, grade:28},
+  {id:11,name:"Topografia",              cfu:6,  grade:30},
+  {id:12,name:"Idraulica",               cfu:12, grade:31},
+  {id:13,name:"Scienza delle Costruzioni II", cfu:9, grade:22},
+  {id:14,name:"Tecnica ed Econ. Trasporti",   cfu:6, grade:28},
+  {id:15,name:"Tecnologia dei Materiali",cfu:6,  grade:31},
+  {id:16,name:"Meccanica delle Terre",   cfu:9,  grade:26},
+  {id:17,name:"Architettura Tecnica",    cfu:6,  grade:27},
+];
+
+const DEFAULT_FUTURE = [
+  {id:101, name:"Fisica Tecnica",           cfu:6},
+  {id:102, name:"Tecnica delle Costruzioni",cfu:12},
+  {id:103, name:"Idrologia",                cfu:9},
+  {id:104, name:"Infrastrutture Viarie",    cfu:9},
+];
+
 const DEFAULT_SETTINGS = { formula: 4, lodeSoglia: 115, lodeVal: 31 };
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -301,7 +328,7 @@ let state = {
   future: [],
   futureGrades: {},
   settings: {...DEFAULT_SETTINGS},
-  nextId: 1,
+  nextId: 200,
 };
 
 function load() {
@@ -310,8 +337,17 @@ function load() {
     if (s) {
       const parsed = JSON.parse(s);
       state = {...state, ...parsed};
+    } else {
+      state.exams = DEFAULT_EXAMS.map(e=>({...e}));
+      state.future = DEFAULT_FUTURE.map(e=>({...e}));
+      state.futureGrades = {101:28, 102:27, 103:28, 104:28};
+      save();
     }
-  } catch(e) {}
+  } catch(e) {
+    state.exams = DEFAULT_EXAMS.map(e=>({...e}));
+    state.future = DEFAULT_FUTURE.map(e=>({...e}));
+    state.futureGrades = {101:28, 102:27, 103:28, 104:28};
+  }
 }
 
 function save() {
